@@ -44,7 +44,7 @@ sudo make install
 To execute a command, first describe a resource as a yaml file (look at examples folder for examples) and then:
 
 ```
-zbctl create --topic default-topic examples/create-task.yaml
+zbctl create-task --topic default-topic examples/create-task.yaml
 ```
 
 To point your ```zbctl``` to some other broker edit ```config.toml``` which can be find in the ```/etc/zeebe/config.toml```.

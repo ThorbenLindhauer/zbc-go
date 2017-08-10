@@ -105,7 +105,7 @@ func (mr *MessageReader) ReadHeaders() (*Headers, *[]byte, error) {
 	sbeIndex := TransportHeaderSize
 	switch transport.ProtocolID {
 	case protocol.RequestResponse:
-		reqRespReader := bytes.NewReader(message[TransportHeaderSize:TransportHeaderSize+RequestResponseHeaderSize])
+		reqRespReader := bytes.NewReader(message[TransportHeaderSize : TransportHeaderSize+RequestResponseHeaderSize])
 		requestResponse, errHeader := mr.readRequestResponseHeader(reqRespReader)
 		if errHeader != nil {
 			return nil, nil, err

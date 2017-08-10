@@ -22,6 +22,7 @@ var (
 // Client for one Zeebe broker
 type Client struct {
 	conn          net.Conn
+	isActive     bool
 	transactions  map[uint64]chan *Message
 	subscriptions map[uint64]chan *Message
 }
@@ -44,10 +45,13 @@ func (c *Client) sender(message *Message) error {
 
 func (c *Client) receiver() {
 	for {
+		if !c.isActive {
+			c.conn.Close()
+			return
+		}
 		buffer := bufio.NewReaderSize(c.conn, 20000)
 		r := NewMessageReader(buffer)
 		headers, tail, err := r.ReadHeaders()
-
 		if err != nil {
 			log.Printf("[R] Error %+#v\n", err)
 			continue
@@ -108,14 +112,22 @@ func (c *Client) TaskConsumer(ts *TaskSubscription) (chan *Message, error) {
 		log.Println(err)
 		return nil, err
 	}
-	c.subscriptions[(*response.Data)["subscriberKey"].(uint64)] = subscriptionCh
+
+	subscriberKey := (*response.Data)["subscriberKey"].(uint64)
+	log.Println(subscriberKey)
+	c.subscriptions[subscriberKey] = subscriptionCh
 
 	return subscriptionCh, nil
 }
 
-// Connect will spinoff receiver in goroutine, which will make client effectively ready to communicate with the broker.
-func (c *Client) Connect() {
+// Start will spinoff receiver in goroutine, which will make client effectively ready to communicate with the broker.
+func (c *Client) Start() {
+	c.isActive = true
 	go c.receiver()
+}
+
+func (c *Client) Close() {
+	c.isActive = false
 }
 
 // NewClient is constructor for Client structure. It will resolve IP address and dial the provided tcp address.
@@ -132,10 +144,11 @@ func NewClient(addr string) (*Client, error) {
 
 	c := &Client{
 		conn,
+		false,
 		make(map[uint64]chan *Message),
 		make(map[uint64]chan *Message),
 	}
-	c.Connect()
+	c.Start()
 
 	return c, nil
 }

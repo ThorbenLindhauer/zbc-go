@@ -102,13 +102,13 @@ func NewCommandRequestMessage(commandRequest *sbe.ExecuteCommandRequest, command
 	headers.SetTransportHeader(protocol.NewTransportHeader(protocol.RequestResponse))
 
 	// Writer will set FrameHeader after serialization to byte array.
-	headers.SetFrameHeader(protocol.NewFrameHeader(uint32(length), 0, 0, 0, 2))
+	headers.SetFrameHeader(protocol.NewFrameHeader(uint32(length), 0, 0, 0, 0))
 
 	msg.SetHeaders(&headers)
 	return &msg
 }
 
-// TaskSubscription is structure which we use to open a subscription on a task.
+// TaskSubscription is structure which we use to handle a subscription on a task.
 type TaskSubscription struct {
 	SubscriberKey uint64 `msgpack:"subscriberKey"`
 	TopicName     string `msgpack:"topicName"`
@@ -133,7 +133,7 @@ func NewTaskSubscriptionMessage(ts *TaskSubscription) *Message {
 	}
 	msg.SetSbeMessage(controlRequest)
 
-	length := 1 + uint32(2+len(controlRequest.Data)) + 18
+	length := 1 + uint32(LengthFieldSize+len(controlRequest.Data)) + TotalHeaderSizeNoFrame
 
 	var headers Headers
 	headers.SetSbeMessageHeader(&sbe.MessageHeader{
@@ -145,7 +145,38 @@ func NewTaskSubscriptionMessage(ts *TaskSubscription) *Message {
 
 	headers.SetRequestResponseHeader(protocol.NewRequestResponseHeader())
 	headers.SetTransportHeader(protocol.NewTransportHeader(protocol.RequestResponse))
-	headers.SetFrameHeader(protocol.NewFrameHeader(uint32(length), 0, 0, 0, 2))
+	headers.SetFrameHeader(protocol.NewFrameHeader(uint32(length), 0, 0, 0, 0))
+
+	msg.SetHeaders(&headers)
+	return &msg
+}
+
+func NewCloseTaskSubscriptionMessage(ts *TaskSubscription) *Message {
+	var msg Message
+
+	b, err := msgpack.Marshal(ts)
+	if err != nil {
+		return nil
+	}
+	controlRequest := &sbe.ControlMessageRequest{
+		MessageType: sbe.ControlMessageType.REMOVE_TASK_SUBSCRIPTION,
+		Data:        b,
+	}
+	msg.SetSbeMessage(controlRequest)
+
+	length := 1 + uint32(LengthFieldSize+len(controlRequest.Data)) + TotalHeaderSizeNoFrame
+
+	var headers Headers
+	headers.SetSbeMessageHeader(&sbe.MessageHeader{
+		BlockLength: controlRequest.SbeBlockLength(),
+		TemplateId:  controlRequest.SbeTemplateId(),
+		SchemaId:    controlRequest.SbeSchemaId(),
+		Version:     controlRequest.SbeSchemaVersion(),
+	})
+
+	headers.SetRequestResponseHeader(protocol.NewRequestResponseHeader())
+	headers.SetTransportHeader(protocol.NewTransportHeader(protocol.RequestResponse))
+	headers.SetFrameHeader(protocol.NewFrameHeader(uint32(length), 0, 0, 0, 0))
 
 	msg.SetHeaders(&headers)
 	return &msg

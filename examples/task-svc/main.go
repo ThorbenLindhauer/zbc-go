@@ -61,7 +61,14 @@ func openSubscription(client *zbc.Client, stopCh chan bool, pid int32, topic str
 			break
 
 		case stop := <-stopCh:
-			if stop {
+			if stop == true {
+				log.Print("Stopping worker.")
+				_, err := client.Responder(zbc.NewCloseTaskSubscriptionMessage(taskSub))
+				if err != nil {
+					log.Println("Close task subscription request failed")
+				}
+				log.Println("Gracefully shutting down the client.")
+				client.Close()
 				return
 			}
 			break
@@ -71,7 +78,7 @@ func openSubscription(client *zbc.Client, stopCh chan bool, pid int32, topic str
 
 func startWorkerView(w http.ResponseWriter, r *http.Request) {
 	resp := make(map[string]interface{})
-	zbClient, err := zbc.NewClient("0.0.0.0:51015")
+	zbClient, err := zbc.NewClient("192.168.21.72:51015")
 	if err != nil {
 		resp["status"] = http.StatusInternalServerError
 	}

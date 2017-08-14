@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"math"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -67,7 +68,7 @@ func sendWorkflowInstance(client *zbc.Client, topic string, m *zbc.WorkflowInsta
 	commandRequest := zbc.NewWorkflowMessage(&sbe.ExecuteCommandRequest{
 		PartitionId: 0,
 		Position:    0,
-		Key:         0,
+		Key:         math.MaxUint64,
 		TopicName:   []uint8(topic),
 		Command:     []uint8{},
 	}, m)
